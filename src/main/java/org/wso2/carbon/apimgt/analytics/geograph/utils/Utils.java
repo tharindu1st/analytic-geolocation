@@ -18,7 +18,7 @@
 package org.wso2.carbon.apimgt.analytics.geograph.utils;
 
 import org.wso2.carbon.apimgt.analytics.geograph.impl.LRUCache;
-import org.wso2.carbon.apimgt.analytics.geograph.internal.CacheHolder;
+import org.wso2.carbon.apimgt.analytics.geograph.holders.CacheHolder;
 
 public class Utils {
         public static final LRUCache<String,Long> cache = CacheHolder.getInstance().getIpToLongCache();

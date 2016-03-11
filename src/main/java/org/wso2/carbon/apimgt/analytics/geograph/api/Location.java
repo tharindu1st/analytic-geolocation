@@ -19,10 +19,12 @@ package org.wso2.carbon.apimgt.analytics.geograph.api;
 public class Location {
     private String country;
     private String city;
+    private String ip;
 
-    public Location(String country, String city) {
+    public Location(String country, String city,String ip) {
         this.country = country;
         this.city = city;
+        this.ip=ip;
     }
 
     public Location() {
@@ -43,5 +45,13 @@ public class Location {
 
     public void setCity(String city) {
         this.city = city;
+    }
+
+    public String getIp() {
+        return ip;
+    }
+
+    public void setIp(String ip) {
+        this.ip = ip;
     }
 }

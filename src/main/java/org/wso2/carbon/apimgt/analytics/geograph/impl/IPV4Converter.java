@@ -20,7 +20,7 @@ package org.wso2.carbon.apimgt.analytics.geograph.impl;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.apimgt.analytics.geograph.exception.GeoLocationResolverException;
-import org.wso2.carbon.apimgt.analytics.geograph.internal.CacheHolder;
+import org.wso2.carbon.apimgt.analytics.geograph.holders.CacheHolder;
 
 public class IPV4Converter {
     private static final Log log = LogFactory.getLog(IPV4Converter.class);

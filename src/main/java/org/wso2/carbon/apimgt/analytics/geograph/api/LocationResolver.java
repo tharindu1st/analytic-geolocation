@@ -19,10 +19,9 @@ package org.wso2.carbon.apimgt.analytics.geograph.api;
 
 import org.wso2.carbon.apimgt.analytics.geograph.exception.GeoLocationResolverException;
 import org.wso2.carbon.apimgt.analytics.geograph.impl.LRUCache;
-import org.wso2.carbon.apimgt.analytics.geograph.internal.CacheHolder;
+import org.wso2.carbon.apimgt.analytics.geograph.holders.CacheHolder;
 
-public abstract class LocationResolver {
-   protected static final  LRUCache<String,Location> cache = CacheHolder.getInstance().getIpResolveCache();
+public interface LocationResolver {
     /**
      * Extract the Country from IP
      *

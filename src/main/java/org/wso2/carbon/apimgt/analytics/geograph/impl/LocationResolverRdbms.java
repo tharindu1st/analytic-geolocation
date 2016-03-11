@@ -17,29 +17,58 @@
 */
 package org.wso2.carbon.apimgt.analytics.geograph.impl;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.apimgt.analytics.geograph.api.Location;
 import org.wso2.carbon.apimgt.analytics.geograph.api.LocationResolver;
 import org.wso2.carbon.apimgt.analytics.geograph.exception.GeoLocationResolverException;
-import org.wso2.carbon.apimgt.analytics.geograph.internal.CacheHolder;
+import org.wso2.carbon.apimgt.analytics.geograph.holders.CacheHolder;
 import org.wso2.carbon.apimgt.analytics.geograph.utils.DBUtil;
-import org.wso2.carbon.apimgt.analytics.geograph.utils.Utils;
 
-public class LocationResolverRdbms extends LocationResolver {
+public class LocationResolverRdbms implements LocationResolver {
+    private static final Log log = LogFactory.getLog(LocationResolverRdbms.class);
+    private static  boolean cacheEnabled;
+    private static LRUCache<String, Location> cache;
+    private static DBUtil dbUtil;
+
     public String getCountry(String ip) throws GeoLocationResolverException {
-        Location location = cache.get(ip);
-        if (location == null) {
-            location = DBUtil.getInstance().getLocation(Utils.getIpV4ToLong(ip));
-            cache.put(ip, location);
+        Location location = null;
+        cacheEnabled = CacheHolder.getInstance().isCacheEnabled();
+        dbUtil = DBUtil.getInstance();
+        if (cacheEnabled) {
+            cache = CacheHolder.getInstance().getIpResolveCache();
+            location = cache.get(ip);
         }
-        return location.getCountry();
+        if (location == null) {
+            location = dbUtil.getLocation(ip);
+            if (location != null) {
+                if (cacheEnabled) {
+                    cache.put(ip, location);
+                }
+            }
+        }
+        return location != null ? location.getCountry() : "";
     }
 
     public String getCity(String ip) throws GeoLocationResolverException {
-        Location location = cache.get(ip);
-        if (location == null) {
-            location = DBUtil.getInstance().getLocation(Utils.getIpV4ToLong(ip));
-            cache.put(ip, location);
+        cacheEnabled = CacheHolder.getInstance().isCacheEnabled();
+        dbUtil = DBUtil.getInstance();
+        Location location = null;
+        if (cacheEnabled) {
+            cache = CacheHolder.getInstance().getIpResolveCache();
+            location = cache.get(ip);
         }
-        return location.getCity();
+        if (location == null) {
+            location = dbUtil.getLocation(ip);
+            if (location != null) {
+                if (cacheEnabled) {
+                    cache.put(ip, location);
+                }
+            }
+        }
+        return location != null ? location.getCity() : "";
+    }
+
+    public LocationResolverRdbms() {
     }
 }

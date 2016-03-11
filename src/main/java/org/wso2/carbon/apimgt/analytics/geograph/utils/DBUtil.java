@@ -21,7 +21,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.apimgt.analytics.geograph.api.Location;
 import org.wso2.carbon.apimgt.analytics.geograph.exception.GeoLocationResolverException;
-
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -53,7 +52,7 @@ public class DBUtil {
                     dataSource = (DataSource) ctx.lookup(dataSourceName);
                 } catch (NamingException e) {
                     String msg = "Couldn't find JDBC Data Source from Data source name" + dataSourceName;
-                    throw new GeoLocationResolverException(msg,e);
+                    throw new GeoLocationResolverException(msg, e);
                 }
             }
         }
@@ -65,7 +64,7 @@ public class DBUtil {
      * @return Connection
      * @throws java.sql.SQLException if failed to get Connection
      */
-    public  Connection getConnection() throws SQLException {
+    public Connection getConnection() throws SQLException {
         if (dataSource != null) {
             return dataSource.getConnection();
         }
@@ -79,8 +78,8 @@ public class DBUtil {
      * @param connection        Connection
      * @param resultSet         ResultSet
      */
-    public  void closeAllConnections(PreparedStatement preparedStatement, Connection connection,
-                                           ResultSet resultSet) {
+    public void closeAllConnections(PreparedStatement preparedStatement, Connection connection,
+                                    ResultSet resultSet) {
         closeConnection(connection);
         closeResultSet(resultSet);
         closeStatement(preparedStatement);
@@ -91,12 +90,12 @@ public class DBUtil {
      *
      * @param dbConnection Connection
      */
-    private  void closeConnection(Connection dbConnection) {
+    private void closeConnection(Connection dbConnection) {
         if (dbConnection != null) {
             try {
                 dbConnection.close();
             } catch (SQLException e) {
-               log.error("Couldn't close connection",e);
+                log.error("Couldn't close connection", e);
             }
         }
     }
@@ -106,12 +105,12 @@ public class DBUtil {
      *
      * @param resultSet ResultSet
      */
-    private  void closeResultSet(ResultSet resultSet) {
+    private void closeResultSet(ResultSet resultSet) {
         if (resultSet != null) {
             try {
                 resultSet.close();
             } catch (SQLException e) {
-                log.error("Couldn't close ResultSet",e);
+                log.error("Couldn't close ResultSet", e);
             }
         }
 
@@ -122,42 +121,89 @@ public class DBUtil {
      *
      * @param preparedStatement PreparedStatement
      */
-    public  void closeStatement(Statement preparedStatement) {
+    public void closeStatement(Statement preparedStatement) {
         if (preparedStatement != null) {
             try {
                 preparedStatement.close();
             } catch (SQLException e) {
-                log.error("Couldn't close Statement",e);
+                log.error("Couldn't close Statement", e);
             }
         }
 
     }
 
-    public Location getLocation(long ipLong) throws GeoLocationResolverException {
-        String sql = "SELECT loc.country_name,loc.city_name FROM blocks AS block , location AS loc WHERE " + ipLong +
-                " BETWEEN block.network AND block.broadcast AND block.geoname_id=loc.geoname_id";
-        Location location = new Location();
-        Connection connection = null;
-        Statement statement = null;
+    private Location getLocation(String ipAddress, Connection connection) throws GeoLocationResolverException {
+        String sql = "SELECT loc.country_name,loc.city_name FROM blocks AS block , location AS loc WHERE ? BETWEEN " +
+                "block.network AND block.broadcast AND block.geoname_id=loc.geoname_id";
+        Location location = null;
+        PreparedStatement statement = null;
         ResultSet resultSet = null;
         try {
-            initialize();
-            connection = getConnection();
-            statement = connection.createStatement();
-            resultSet = statement.executeQuery(sql);
+            statement = connection.prepareStatement(sql);
+            statement.setLong(1, Utils.getIpV4ToLong(ipAddress));
+            resultSet = statement.executeQuery();
             if (resultSet.next()) {
-                location.setCity(resultSet.getString("city_name"));
-                location.setCountry(resultSet.getString("country_name"));
+                location = new Location(resultSet.getString("country_name"), resultSet.getString("city_name"),
+                        ipAddress);
             }
         } catch (SQLException e) {
             throw new GeoLocationResolverException(e.getMessage(), e);
         } finally {
-            closeConnection(connection);
-            closeStatement(statement);
-            closeResultSet(resultSet);
+            closeAllConnections(statement, null, resultSet);
         }
         return location;
     }
+
+    public Location getLocation(String ipAddress) throws GeoLocationResolverException {
+        String sql = "SELECT location.country_name,location.city_name FROM IP_LOCATION AS location WHERE location.ip " +
+                "= ?";
+        Location location = null;
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+        try {
+            initialize();
+            connection = getConnection();
+                statement = connection.prepareStatement(sql);
+                statement.setString(1, ipAddress);
+                resultSet = statement.executeQuery();
+                if (resultSet.next()) {
+                    location = new Location(resultSet.getString("country_name"), resultSet.getString("city_name"),
+                            ipAddress);
+                } else {
+                    location = getLocation(ipAddress, connection);
+                    if (location != null) {
+                        saveLocation(location, connection);
+                    }
+                }
+
+        } catch (SQLException e) {
+            throw new GeoLocationResolverException(e.getMessage(), e);
+        } finally {
+            closeAllConnections(statement, connection, resultSet);
+        }
+        return location;
+    }
+
+    private boolean saveLocation(Location location, Connection connection) throws GeoLocationResolverException {
+        String sql = "INSERT INTO IP_LOCATION (ip,country_name,city_name) VALUES (?,?,?)";
+        PreparedStatement statement = null;
+        boolean status;
+        try {
+            statement = connection.prepareStatement(sql);
+            statement.setString(1, location.getIp());
+            statement.setString(2, location.getCountry());
+            statement.setString(3, location.getCity());
+            status = statement.execute();
+            connection.commit();
+        } catch (SQLException e) {
+            throw new GeoLocationResolverException(e.getMessage(), e);
+        } finally {
+            closeAllConnections(statement, null, null);
+        }
+        return status;
+    }
+
 
     public void setDataSourceName(String dataSourceName) {
         DBUtil.dataSourceName = dataSourceName;

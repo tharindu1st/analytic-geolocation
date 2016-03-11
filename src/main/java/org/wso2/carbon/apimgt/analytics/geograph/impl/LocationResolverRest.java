@@ -19,26 +19,48 @@ package org.wso2.carbon.apimgt.analytics.geograph.impl;
 
 import org.wso2.carbon.apimgt.analytics.geograph.api.Location;
 import org.wso2.carbon.apimgt.analytics.geograph.api.LocationResolver;
-import org.wso2.carbon.apimgt.analytics.geograph.internal.CacheHolder;
+import org.wso2.carbon.apimgt.analytics.geograph.holders.CacheHolder;
 import org.wso2.carbon.apimgt.analytics.geograph.utils.RestUtil;
 
-public class LocationResolverRest extends LocationResolver {
+public class LocationResolverRest implements LocationResolver {
+   private static boolean cacheEnabled;
+   private static LRUCache<String, Location> cache;
+    private static RestUtil restUtil;
     public String getCountry(String ip) {
-        Location location = cache.get(ip);
+        Location location = null;
+        cacheEnabled = CacheHolder.getInstance().isCacheEnabled();
+        restUtil = RestUtil.getInstance();
+        if (cacheEnabled){
+            cache = CacheHolder.getInstance().getIpResolveCache();
+            location = cache.get(ip);
+        }
         if (location == null) {
-            location = RestUtil.getInstance().getLocation(ip);
-            cache.put(ip, location);
+            location = restUtil.getLocation(ip);
+            if (cacheEnabled){
+                cache.put(ip, location);
+            }
         }
         return location.getCountry();
     }
 
     public String getCity(String ip) {
-        Location location = cache.get(ip);
+        Location location = null;
+        cacheEnabled = CacheHolder.getInstance().isCacheEnabled();
+        restUtil = RestUtil.getInstance();
+        if (cacheEnabled){
+            cache = CacheHolder.getInstance().getIpResolveCache();
+            location = cache.get(ip);
+        }
         if (location == null) {
-            location = RestUtil.getInstance().getLocation(ip);
-            cache.put(ip, location);
+            location = restUtil.getLocation(ip);
+            if (cacheEnabled){
+                cache.put(ip, location);
+            }
         }
         return location.getCity();
+    }
+
+    public LocationResolverRest() {
 
     }
 }

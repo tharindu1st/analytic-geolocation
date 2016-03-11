@@ -58,8 +58,9 @@ public class RestUtil {
             bufferedReader = new BufferedReader(new InputStreamReader(serviceResponse.getEntity().getContent()));
             location = gson.fromJson(bufferedReader, Location.class);
             if (location == null) {
-                location = new Location("", "");
+                location = new Location("", "","");
             }
+            location.setIp(ip);
         } catch (IOException e) {
             log.error("Couldn't send rest request to url", e);
         } finally {
