@@ -133,7 +133,7 @@ public class DBUtil {
     }
 
     private Location getLocation(String ipAddress, Connection connection) throws GeoLocationResolverException {
-        String sql = "SELECT loc.country_name,loc.city_name FROM blocks AS block , location AS loc WHERE ? BETWEEN " +
+        String sql = "SELECT loc.country_name,loc.subdivision_1_name FROM blocks AS block , location AS loc WHERE ? BETWEEN " +
                 "block.network AND block.broadcast AND block.geoname_id=loc.geoname_id";
         Location location = null;
         PreparedStatement statement = null;
@@ -143,7 +143,7 @@ public class DBUtil {
             statement.setLong(1, Utils.getIpV4ToLong(ipAddress));
             resultSet = statement.executeQuery();
             if (resultSet.next()) {
-                location = new Location(resultSet.getString("country_name"), resultSet.getString("city_name"),
+                location = new Location(resultSet.getString("country_name"), resultSet.getString("subdivision_1_name"),
                         ipAddress);
             }
         } catch (SQLException e) {
